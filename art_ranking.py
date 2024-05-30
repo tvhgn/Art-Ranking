@@ -12,6 +12,7 @@ from datetime import datetime
 from random import shuffle
 import csv
 import os
+import time
 
 # Custom functions
 # Draw the grid of images and text boxes
@@ -37,8 +38,46 @@ def validate_textboxes(textboxes):
         if textbox.hasFocus and not validate_input(textbox.text):
             textbox.reset()
             
+def focus_painting(mouseObject, paintings, window, textboxes):
+    # Parameters for enlarged painting
+    new_size = (1.5, 1.5)
+    new_pos = (0, 0)  # Center of the screen in norm units
+    # Check for each painting if the mouse is pressed on it. 
+    # If so, center the painting and enlarge it for better visibility.
+    for painting in paintings:
+        if mouseObject.isPressedIn(painting, buttons=[0]):
+            for textbox in textboxes:
+                textbox.autoDraw = False
+            # Remember old size and position to revert back to later on
+            original_size = painting.size
+            original_pos = painting.pos
+            print(original_size)
+            painting.size = new_size
+            painting.pos = new_pos
+            # Draw painting again and flip to screen
+            painting.draw()
+            window.flip()
+            time.sleep(1)  # Pause for 1 second to allow user to view the enlarged painting
+            
+            # Wait for mouse release to reset the painting
+            while not any(mouseObject.getPressed()):
+                pass
+            
+            # Reset painting parameters
+            painting.size = original_size
+            painting.pos = original_pos
+            
+            # Make textboxes visible again
+            for textbox in textboxes:
+                textbox.autoDraw = True
+            
+            # Draw the grid again
+            draw_grid()
+            window.flip()
+            # Reset mouse events
+            event.clearEvents('mouse')
 
-         
+#### MAIN CODE ####
 # Is there a secondary window? Set parameter
 secondary_screen = False
 if secondary_screen:
@@ -58,8 +97,9 @@ current_datetime = current_datetime.strftime('%d%m%y_%H%M%S')
 filename = "_".join([sub_num, "art_ranking.csv", current_datetime])
 output_file = os.path.join("data", filename)
 
-# Initialize window 
+# Initialize window and mouse
 win = visual.Window(fullscr=True, color=(0.5, 0.5, 0.5), screen=screen_num)
+mouse = event.Mouse()
 
 # Define grid parameters
 rows = 6
@@ -119,6 +159,9 @@ current_state = False
 while running:
     draw_grid()
     win.flip()
+    
+    # Enlarge painting if user clicks on it
+    focus_painting(mouse, images, win, text_boxes)
     
     # Validate input to make sure only numbers between 1 and 36 are entered.
     validate_textboxes(text_boxes)
